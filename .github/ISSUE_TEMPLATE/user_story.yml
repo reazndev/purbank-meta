@@ -1,0 +1,48 @@
+name: User Story
+description: Create a new user story with editable acceptance criteria and definition of done
+title: "User Story: "
+body:
+  - type: textarea
+    id: user_story
+    attributes:
+      label: User Story
+      description: "Follow the structure: **As a [role], I want [an action or feature], So that [a reason or benefit].**"
+      placeholder: |
+        As a [role],
+        I want [an action or feature],
+        So that [a reason or benefit].
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List the conditions that must be met for this story to be complete.
+      placeholder: |
+        - [ ] Criteria 1: Describe the first acceptance criterion here.
+        - [ ] Criteria 2: Describe the second acceptance criterion here.
+        - [ ] Criteria 3: Add more if needed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: definition_of_done
+    attributes:
+      label: Definition of Done
+      description: Define what “done” means for this story.
+      placeholder: |
+        - [ ] All acceptance criteria are met.
+        - [ ] Code is reviewed and approved.
+        - [ ] Necessary tests are written and pass.
+        - [ ] Documentation is updated, if applicable.
+        - [ ] Feature is deployed to the [environment name].
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_notes
+    attributes:
+      label: Additional Notes
+      description: Any relevant information, dependencies, or references.
+      placeholder: e.g., Depends on issue
