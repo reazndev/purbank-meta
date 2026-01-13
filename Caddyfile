@@ -1,0 +1,21 @@
+localhost {
+    # API routes - proxy to backend
+    handle /api/* {
+        reverse_proxy backend:8080
+    }
+
+    # Swagger UI routes - proxy to backend
+    handle /swagger-ui/* {
+        reverse_proxy backend:8080
+    }
+
+    # OpenAPI spec routes - proxy to backend
+    handle /v3/* {
+        reverse_proxy backend:8080
+    }
+
+    # Everything else - proxy to frontend
+    handle /* {
+        reverse_proxy frontend:80
+    }
+}

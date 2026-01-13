@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Caddy Reverse Proxy
+  # =============================================================================
+  caddy:
+    image: caddy:2-alpine
+    container_name: purbank-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - purbank-network
+
+  # =============================================================================
+  # PostgreSQL Database
+  # =============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: purbank-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-purbank}
+      POSTGRES_USER: ${DB_USERNAME:-purbank_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-purbank_user} -d ${DB_NAME:-purbank}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - purbank-network
+
+  # =============================================================================
+  # Backend API
+  # =============================================================================
+  backend:
+    image: ghcr.io/reazndev/purbank-backend/purbank-backend:latest
+    container_name: purbank-backend
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      # Database Configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-purbank}
+      DB_USERNAME: ${DB_USERNAME:-purbank_user}
+      DB_PASSWORD: ${DB_PASSWORD:-dev_password}
+      
+      # Mail Configuration
+      MAIL_HOST: ${MAIL_HOST:-mail.hilfikernet.ch}
+      MAIL_PORT: ${MAIL_PORT:-465}
+      MAIL_USERNAME: ${MAIL_USERNAME:-no-reply@purbank.ch}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_AUTH: ${MAIL_AUTH:-true}
+      MAIL_SSL: ${MAIL_SSL:-true}
+      MAIL_DEBUG: ${MAIL_DEBUG:-false}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@purbank.ch}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Purbank}
+      MAIL_VERIFICATION_SUBJECT: ${MAIL_VERIFICATION_SUBJECT:-Verify Your Email - Purbank Registration}
+      MAIL_SUCCESS_SUBJECT: ${MAIL_SUCCESS_SUBJECT:-Welcome to Purbank!}
+      
+      # JWT Configuration
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-900000}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-1200000}
+      JWT_REFRESH_ABSOLUTE_EXPIRATION: ${JWT_REFRESH_ABSOLUTE_EXPIRATION:-43200000}
+      
+      # Server Configuration
+      SERVER_PORT: 8080
+      
+      # Security Configuration
+      CORS_ENABLE: ${CORS_ENABLE:-true}
+      
+      # Swagger/OpenAPI Configuration
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
+      SWAGGER_PROD_URL: ${SWAGGER_PROD_URL:-http://localhost}
+      
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - purbank-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  # =============================================================================
+  # Frontend Web Application
+  # =============================================================================
+  frontend:
+    image: ghcr.io/reazndev/purbank-web-frontend:latest
+    container_name: purbank-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      - NODE_ENV=development
+      - API_URL=${API_URL}:-http://localhost/api/v1}
+    networks:
+      - purbank-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  purbank-network:
+    driver: bridge
