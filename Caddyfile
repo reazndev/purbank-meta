@@ -1,4 +1,4 @@
-localhost {
+http://localhost {
     # API routes - proxy to backend
     handle /api/* {
         reverse_proxy backend:8080
